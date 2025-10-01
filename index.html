@@ -242,52 +242,76 @@
             button.textContent = 'Generating...';
             button.disabled = true;
             
+            // Store original transform
+            const originalTransform = element.style.transform;
+            const originalWidth = element.style.width;
+            const originalHeight = element.style.height;
+            
+            // Temporarily scale to full size for capture
+            element.style.transform = 'scale(1)';
+            element.style.width = '1080px';
+            element.style.height = '1080px';
+            
             // Configure html2canvas options for high quality 1080x1080 output
             const options = {
-                scale: 1, // Use 1:1 scale since we're already at 1080x1080
+                scale: 1,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: null,
+                backgroundColor: '#ffffff', // Set white background to avoid transparency
                 width: 1080,
                 height: 1080,
                 scrollX: 0,
-                scrollY: 0
+                scrollY: 0,
+                logging: false
             };
             
-            html2canvas(element, options).then(function(canvas) {
-                // Create download link
-                const link = document.createElement('a');
-                link.download = filename;
-                link.href = canvas.toDataURL('image/png');
-                
-                // Trigger download
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Reset button state
-                button.textContent = originalText;
-                button.disabled = false;
-                
-                // Show success feedback
-                button.textContent = 'Downloaded!';
-                setTimeout(() => {
+            // Small delay to ensure the element is rendered at full size
+            setTimeout(() => {
+                html2canvas(element, options).then(function(canvas) {
+                    // Restore original transform and size
+                    element.style.transform = originalTransform;
+                    element.style.width = originalWidth;
+                    element.style.height = originalHeight;
+                    
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png');
+                    
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Reset button state
                     button.textContent = originalText;
-                }, 2000);
-                
-            }).catch(function(error) {
-                console.error('Error generating image:', error);
-                
-                // Reset button state on error
-                button.textContent = originalText;
-                button.disabled = false;
-                
-                // Show error feedback
-                button.textContent = 'Error - Try Again';
-                setTimeout(() => {
+                    button.disabled = false;
+                    
+                    // Show success feedback
+                    button.textContent = 'Downloaded!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                    
+                }).catch(function(error) {
+                    console.error('Error generating image:', error);
+                    
+                    // Restore original transform and size on error
+                    element.style.transform = originalTransform;
+                    element.style.width = originalWidth;
+                    element.style.height = originalHeight;
+                    
+                    // Reset button state on error
                     button.textContent = originalText;
-                }, 2000);
-            });
+                    button.disabled = false;
+                    
+                    // Show error feedback
+                    button.textContent = 'Error - Try Again';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                });
+            }, 100);
         }
         
         // Add some interactive effects

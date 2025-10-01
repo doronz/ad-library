@@ -232,7 +232,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script>
-        // The final, pragmatic, and robust download function
+        // New client-side function for index.html
         async function downloadAd(elementId, filename) {
             const element = document.getElementById(elementId);
             const button = event.target;
@@ -241,63 +241,37 @@
             button.textContent = 'Generating...';
             button.disabled = true;
 
+            // Get the HTML content of the ad canvas
+            const adHtml = element.innerHTML;
+
             try {
-                // 1. Explicitly load the font and wait.
-                await document.fonts.load('1em Inter');
+                // Send the HTML to our new server endpoint
+                const response = await fetch('http://localhost:3000/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html: adHtml })
+                });
 
-                const clone = element.cloneNode(true);
-                clone.style.position = 'absolute';
-                clone.style.left = '-9999px';
-                clone.style.top = '-9999px';
-                clone.style.zIndex = '-1'; // Place it behind everything
-                clone.style.width = '1080px';
-                clone.style.height = '1080px';
-                clone.style.transform = 'scale(1)';
-                clone.style.transformOrigin = 'top left';
-                document.body.appendChild(clone);
+                if (!response.ok) {
+                    throw new Error('Server failed to generate image.');
+                }
 
-                const options = {
-                    scale: 1,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: null,
-                    width: 1080,
-                    height: 1080,
-                    logging: false
-                };
+                // The server will respond with the image file directly
+                const imageBlob = await response.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(imageBlob);
+                link.download = filename;
+                link.click();
 
-                // 2. Add a strategic delay.
-                // This gives html2canvas's internal engine the extra moment it needs
-                // to correctly calculate layout with the custom font's metrics.
-                setTimeout(() => {
-                    html2canvas(clone, options).then(canvas => {
-                        const link = document.createElement('a');
-                        link.download = filename;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                        button.textContent = 'Downloaded!';
-                    }).catch(error => {
-                        console.error('Error during html2canvas capture:', error);
-                        button.textContent = 'Capture Error';
-                    }).finally(() => {
-                        document.body.removeChild(clone);
-                        button.disabled = false;
-                        
-                        // Reset button text after a delay
-                        const resetDelay = button.textContent.includes('Error') ? 3000 : 2000;
-                        setTimeout(() => {
-                            button.textContent = originalText;
-                        }, resetDelay);
-                    });
-                }, 300); // A 300ms delay is robust for this purpose.
-
+                button.textContent = 'Downloaded!';
             } catch (error) {
-                console.error('Error loading font or preparing clone:', error);
-                button.textContent = 'Font Error';
-                button.disabled = false;
+                console.error('Error:', error);
+                button.textContent = 'Error!';
+            } finally {
                 setTimeout(() => {
                     button.textContent = originalText;
-                }, 3000);
+                    button.disabled = false;
+                }, 2000);
             }
         }
         

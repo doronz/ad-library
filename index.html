@@ -240,25 +240,40 @@
             const button = event.target;
             const originalText = button.textContent;
             button.textContent = 'Generating...';
-            button.disabled = false;
+            button.disabled = true;
             
-            // Store original styles
-            const originalTransform = element.style.transform;
-            const originalWidth = element.style.width;
-            const originalHeight = element.style.height;
-            const originalPosition = element.style.position;
-            const originalTop = element.style.top;
-            const originalLeft = element.style.left;
-            const originalZIndex = element.style.zIndex;
+            // Create a deep clone of the element
+            const clonedElement = element.cloneNode(true);
+            clonedElement.id = elementId + '-capture-clone';
             
-            // Temporarily modify for capture - position off-screen to avoid layout shift
-            element.style.position = 'absolute';
-            element.style.top = '-9999px';
-            element.style.left = '-9999px';
-            element.style.zIndex = '-9999';
-            element.style.transform = 'scale(1)';
-            element.style.width = '1080px';
-            element.style.height = '1080px';
+            // Copy computed styles to ensure accurate rendering
+            const computedStyles = window.getComputedStyle(element);
+            const styleProps = [
+                'display', 'position', 'top', 'left', 'width', 'height', 'margin', 'padding',
+                'border', 'borderRadius', 'backgroundColor', 'backgroundImage', 'backgroundSize',
+                'backgroundPosition', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign',
+                'lineHeight', 'letterSpacing', 'textTransform', 'textDecoration', 'opacity',
+                'transform', 'transformOrigin', 'zIndex', 'overflow', 'boxSizing', 'flexDirection',
+                'justifyContent', 'alignItems', 'flexWrap', 'gap', 'flex', 'order'
+            ];
+            
+            // Apply computed styles to the clone
+            styleProps.forEach(prop => {
+                clonedElement.style[prop] = computedStyles[prop];
+            });
+            
+            // Apply capture-specific styles to the clone
+            clonedElement.style.position = 'absolute';
+            clonedElement.style.top = '-9999px';
+            clonedElement.style.left = '-9999px';
+            clonedElement.style.zIndex = '-9999';
+            clonedElement.style.transform = 'scale(1)';
+            clonedElement.style.width = '1080px';
+            clonedElement.style.height = '1080px';
+            clonedElement.style.visibility = 'visible';
+            
+            // Append clone to DOM
+            document.body.appendChild(clonedElement);
             
             // Configure html2canvas options for high quality 1080x1080 output
             const options = {
@@ -273,17 +288,13 @@
                 logging: false
             };
             
-            // Small delay to ensure the element is rendered at full size
+            // Small delay to ensure the cloned element is rendered at full size
             setTimeout(() => {
-                html2canvas(element, options).then(function(canvas) {
-                    // Restore original styles
-                    element.style.transform = originalTransform;
-                    element.style.width = originalWidth;
-                    element.style.height = originalHeight;
-                    element.style.position = originalPosition;
-                    element.style.top = originalTop;
-                    element.style.left = originalLeft;
-                    element.style.zIndex = originalZIndex;
+                html2canvas(clonedElement, options).then(function(canvas) {
+                    // Remove the cloned element from DOM
+                    if (document.body.contains(clonedElement)) {
+                        document.body.removeChild(clonedElement);
+                    }
                     
                     // Create download link
                     const link = document.createElement('a');
@@ -308,14 +319,10 @@
                 }).catch(function(error) {
                     console.error('Error generating image:', error);
                     
-                    // Restore original styles on error
-                    element.style.transform = originalTransform;
-                    element.style.width = originalWidth;
-                    element.style.height = originalHeight;
-                    element.style.position = originalPosition;
-                    element.style.top = originalTop;
-                    element.style.left = originalLeft;
-                    element.style.zIndex = originalZIndex;
+                    // Clean up the cloned element on error
+                    if (document.body.contains(clonedElement)) {
+                        document.body.removeChild(clonedElement);
+                    }
                     
                     // Reset button state on error
                     button.textContent = originalText;

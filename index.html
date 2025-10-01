@@ -242,22 +242,26 @@
             button.textContent = 'Generating...';
             button.disabled = true;
             
-            // Store original transform
-            const originalTransform = element.style.transform;
-            const originalWidth = element.style.width;
-            const originalHeight = element.style.height;
+            // Create a hidden full-size copy for capture
+            const captureElement = element.cloneNode(true);
+            captureElement.id = elementId + '-capture';
+            captureElement.style.position = 'absolute';
+            captureElement.style.top = '-9999px';
+            captureElement.style.left = '-9999px';
+            captureElement.style.transform = 'scale(1)';
+            captureElement.style.width = '1080px';
+            captureElement.style.height = '1080px';
+            captureElement.style.visibility = 'hidden';
             
-            // Temporarily scale to full size for capture
-            element.style.transform = 'scale(1)';
-            element.style.width = '1080px';
-            element.style.height = '1080px';
+            // Add to DOM
+            document.body.appendChild(captureElement);
             
             // Configure html2canvas options for high quality 1080x1080 output
             const options = {
                 scale: 1,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff', // Set white background to avoid transparency
+                backgroundColor: '#ffffff',
                 width: 1080,
                 height: 1080,
                 scrollX: 0,
@@ -265,13 +269,11 @@
                 logging: false
             };
             
-            // Small delay to ensure the element is rendered at full size
+            // Small delay to ensure the element is rendered
             setTimeout(() => {
-                html2canvas(element, options).then(function(canvas) {
-                    // Restore original transform and size
-                    element.style.transform = originalTransform;
-                    element.style.width = originalWidth;
-                    element.style.height = originalHeight;
+                html2canvas(captureElement, options).then(function(canvas) {
+                    // Remove the temporary element
+                    document.body.removeChild(captureElement);
                     
                     // Create download link
                     const link = document.createElement('a');
@@ -296,10 +298,10 @@
                 }).catch(function(error) {
                     console.error('Error generating image:', error);
                     
-                    // Restore original transform and size on error
-                    element.style.transform = originalTransform;
-                    element.style.width = originalWidth;
-                    element.style.height = originalHeight;
+                    // Clean up the temporary element on error
+                    if (document.body.contains(captureElement)) {
+                        document.body.removeChild(captureElement);
+                    }
                     
                     // Reset button state on error
                     button.textContent = originalText;
@@ -311,7 +313,7 @@
                         button.textContent = originalText;
                     }, 2000);
                 });
-            }, 100);
+            }, 200);
         }
         
         // Add some interactive effects

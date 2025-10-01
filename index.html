@@ -232,109 +232,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script>
-        // Download function for converting ad canvas to PNG
-        function downloadAd(elementId, filename) {
+        // The modern, asynchronous download function
+        async function downloadAd(elementId, filename) {
+            // 1. WAIT FOR FONTS: This is the new, elegant fix.
+            // The function will pause here until the browser confirms all fonts are loaded.
+            await document.fonts.ready;
+
             const element = document.getElementById(elementId);
-            
-            // Show loading state
             const button = event.target;
             const originalText = button.textContent;
+
             button.textContent = 'Generating...';
             button.disabled = true;
-            
-            // Create a deep clone of the element
-            const clonedElement = element.cloneNode(true);
-            clonedElement.id = elementId + '-capture-clone';
-            
-            // Copy computed styles to ensure accurate rendering
-            const computedStyles = window.getComputedStyle(element);
-            const styleProps = [
-                'display', 'position', 'top', 'left', 'width', 'height', 'margin', 'padding',
-                'border', 'borderRadius', 'backgroundColor', 'backgroundImage', 'backgroundSize',
-                'backgroundPosition', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign',
-                'lineHeight', 'letterSpacing', 'textTransform', 'textDecoration', 'opacity',
-                'transform', 'transformOrigin', 'zIndex', 'overflow', 'boxSizing', 'flexDirection',
-                'justifyContent', 'alignItems', 'flexWrap', 'gap', 'flex', 'order'
-            ];
-            
-            // Apply computed styles to the clone
-            styleProps.forEach(prop => {
-                clonedElement.style[prop] = computedStyles[prop];
-            });
-            
-            // Apply capture-specific styles to the clone
-            clonedElement.style.position = 'absolute';
-            clonedElement.style.top = '-9999px';
-            clonedElement.style.left = '-9999px';
-            clonedElement.style.zIndex = '-9999';
-            clonedElement.style.transform = 'scale(1)';
-            clonedElement.style.width = '1080px';
-            clonedElement.style.height = '1080px';
-            clonedElement.style.visibility = 'visible';
-            
-            // Append clone to DOM
-            document.body.appendChild(clonedElement);
-            
-            // Configure html2canvas options for high quality 1080x1080 output
+
+            const clone = element.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '-9999px';
+            clone.style.zIndex = '1000';
+            clone.style.width = '1080px';
+            clone.style.height = '1080px';
+            clone.style.transform = 'scale(1)';
+            clone.style.transformOrigin = 'top left';
+            document.body.appendChild(clone);
+
             const options = {
                 scale: 1,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: null, // Keep original background
+                backgroundColor: null,
                 width: 1080,
                 height: 1080,
-                scrollX: 0,
-                scrollY: 0,
                 logging: false
             };
-            
-            // Small delay to ensure the cloned element is rendered at full size
-            setTimeout(() => {
-                html2canvas(clonedElement, options).then(function(canvas) {
-                    // Remove the cloned element from DOM
-                    if (document.body.contains(clonedElement)) {
-                        document.body.removeChild(clonedElement);
-                    }
-                    
-                    // Create download link
-                    const link = document.createElement('a');
-                    link.download = filename;
-                    link.href = canvas.toDataURL('image/png');
-                    
-                    // Trigger download
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // Reset button state
+
+            // No need for requestAnimationFrame here because waiting for fonts
+            // also gives the layout engine time to settle.
+            html2canvas(clone, options).then(canvas => {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                button.textContent = 'Downloaded!';
+                setTimeout(() => {
                     button.textContent = originalText;
-                    button.disabled = false;
-                    
-                    // Show success feedback
-                    button.textContent = 'Downloaded!';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 2000);
-                    
-                }).catch(function(error) {
-                    console.error('Error generating image:', error);
-                    
-                    // Clean up the cloned element on error
-                    if (document.body.contains(clonedElement)) {
-                        document.body.removeChild(clonedElement);
-                    }
-                    
-                    // Reset button state on error
+                }, 2000);
+
+            }).catch(error => {
+                console.error('Error generating image:', error);
+                button.textContent = 'Error - Try Again';
+                setTimeout(() => {
                     button.textContent = originalText;
-                    button.disabled = false;
-                    
-                    // Show error feedback
-                    button.textContent = 'Error - Try Again';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 2000);
-                });
-            }, 300);
+                }, 3000);
+
+            }).finally(() => {
+                document.body.removeChild(clone);
+                button.disabled = false;
+            });
         }
         
         // Add some interactive effects

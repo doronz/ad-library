@@ -48,12 +48,33 @@
         </p>
     </header>
 
-    <!-- Ad Gallery Container -->
+    <!-- Ad Gallery with Sidebar -->
     <main class="max-w-7xl mx-auto px-4 pb-12">
-        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-            
-            <!-- Ad Template 1: Gradient Splash -->
-            <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+        <div class="flex gap-6">
+            <!-- Sidebar -->
+            <aside class="w-64 shrink-0 bg-gray-800/60 border border-gray-700 rounded-xl h-fit sticky top-6 self-start">
+                <div class="p-4 border-b border-gray-700">
+                    <h2 class="text-lg font-semibold text-gray-200">Templates</h2>
+                </div>
+                <nav class="p-2" id="template-nav">
+                    <button data-target="template-1" class="template-link w-full text-left px-4 py-3 rounded-lg text-gray-200 hover:bg-gray-700/60 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        1. Gradient Splash
+                    </button>
+                    <button data-target="template-2" class="template-link w-full text-left px-4 py-3 rounded-lg text-gray-200 hover:bg-gray-700/60 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        2. Minimalist Tech
+                    </button>
+                    <button data-target="template-3" class="template-link w-full text-left px-4 py-3 rounded-lg text-gray-200 hover:bg-gray-700/60 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        3. Nature & Wellness
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- Main Canvas Area: show one at a time -->
+            <section class="flex-1">
+                
+                <!-- Ad Template 1: Gradient Splash -->
+                <div id="template-1" class="template-view">
+                    <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
                 <div class="p-6 border-b border-gray-700">
                     <h3 class="text-xl font-semibold text-white">Ad Template 1: Gradient Splash</h3>
                 </div>
@@ -93,9 +114,11 @@
                     </button>
                 </div>
             </div>
+                </div>
 
-            <!-- Ad Template 2: Minimalist Tech -->
-            <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+                <!-- Ad Template 2: Minimalist Tech -->
+                <div id="template-2" class="template-view hidden">
+                    <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
                 <div class="p-6 border-b border-gray-700">
                     <h3 class="text-xl font-semibold text-white">Ad Template 2: Minimalist Tech</h3>
                 </div>
@@ -150,9 +173,11 @@
                     </button>
                 </div>
             </div>
+                </div>
 
-            <!-- Ad Template 3: Nature & Wellness -->
-            <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+                <!-- Ad Template 3: Nature & Wellness -->
+                <div id="template-3" class="template-view hidden">
+                    <div class="ad-card bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
                 <div class="p-6 border-b border-gray-700">
                     <h3 class="text-xl font-semibold text-white">Ad Template 3: Nature & Wellness</h3>
                 </div>
@@ -197,7 +222,9 @@
                     </button>
                 </div>
             </div>
+                </div>
 
+            </section>
         </div>
     </main>
 
@@ -265,18 +292,29 @@
         
         // Add some interactive effects
         document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to ad cards
-            const adCards = document.querySelectorAll('.ad-card');
-            adCards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-5px)';
-                    this.style.transition = 'transform 0.3s ease';
+            // Sidebar switching logic
+            const links = document.querySelectorAll('.template-link');
+            const views = document.querySelectorAll('.template-view');
+
+            function setActive(targetId) {
+                views.forEach(v => v.classList.add('hidden'));
+                const active = document.getElementById(targetId);
+                if (active) active.classList.remove('hidden');
+
+                links.forEach(l => l.classList.remove('bg-gray-700'));
+                links.forEach(l => {
+                    if (l.getAttribute('data-target') === targetId) {
+                        l.classList.add('bg-gray-700');
+                    }
                 });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
+            }
+
+            links.forEach(link => {
+                link.addEventListener('click', () => setActive(link.getAttribute('data-target')));
             });
+
+            // Initialize first template as active
+            setActive('template-1');
         });
     </script>
 </body>

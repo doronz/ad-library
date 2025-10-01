@@ -232,7 +232,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script>
-        // The final, bulletproof download function
+        // The final, pragmatic, and robust download function
         async function downloadAd(elementId, filename) {
             const element = document.getElementById(elementId);
             const button = event.target;
@@ -242,16 +242,14 @@
             button.disabled = true;
 
             try {
-                // 1. COMMAND THE FONT LOAD: Instead of asking if fonts are ready, we explicitly
-                // command the browser to load 'Inter' and wait for it to finish.
-                // This is the most crucial part of the fix.
+                // 1. Explicitly load the font and wait.
                 await document.fonts.load('1em Inter');
 
                 const clone = element.cloneNode(true);
                 clone.style.position = 'absolute';
                 clone.style.left = '-9999px';
                 clone.style.top = '-9999px';
-                clone.style.zIndex = '1000';
+                clone.style.zIndex = '-1'; // Place it behind everything
                 clone.style.width = '1080px';
                 clone.style.height = '1080px';
                 clone.style.transform = 'scale(1)';
@@ -268,35 +266,30 @@
                     logging: false
                 };
 
-                // 2. WAIT FOR BROWSER PAINT: As a final safeguard, we wait for the next
-                // animation frame. This guarantees the browser has processed the cloned
-                // element's layout and is ready to capture it accurately.
-                requestAnimationFrame(async () => {
-                    try {
-                        const canvas = await html2canvas(clone, options);
+                // 2. Add a strategic delay.
+                // This gives html2canvas's internal engine the extra moment it needs
+                // to correctly calculate layout with the custom font's metrics.
+                setTimeout(() => {
+                    html2canvas(clone, options).then(canvas => {
                         const link = document.createElement('a');
                         link.download = filename;
                         link.href = canvas.toDataURL('image/png');
                         link.click();
-
                         button.textContent = 'Downloaded!';
-                        setTimeout(() => {
-                            button.textContent = originalText;
-                        }, 2000);
-                    } catch (error) {
+                    }).catch(error => {
                         console.error('Error during html2canvas capture:', error);
                         button.textContent = 'Capture Error';
-                    } finally {
-                        // 3. CLEANUP: Always remove the clone and re-enable the button.
+                    }).finally(() => {
                         document.body.removeChild(clone);
                         button.disabled = false;
-                        if(button.textContent === 'Capture Error') {
-                            setTimeout(() => {
-                                button.textContent = originalText;
-                            }, 3000);
-                        }
-                    }
-                });
+                        
+                        // Reset button text after a delay
+                        const resetDelay = button.textContent.includes('Error') ? 3000 : 2000;
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                        }, resetDelay);
+                    });
+                }, 300); // A 300ms delay is robust for this purpose.
 
             } catch (error) {
                 console.error('Error loading font or preparing clone:', error);
